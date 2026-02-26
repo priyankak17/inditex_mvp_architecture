@@ -1,4 +1,4 @@
-# Zara AI Stylist — MVP Architecture
+# Zara AI Stylist —> MVP Architecture
 
 A conceptual system architecture for an AI-powered styling platform that helps users find and virtually try on Zara outfits for specific occasions.
 
@@ -55,7 +55,7 @@ An interactive architecture diagram built for a hackathon MVP. It visualises the
 
 ## Live Demo
 
-[View the architecture →](https://priyankak17.github.io/your-repo-name)
+[View the architecture →](https://priyankak17.github.io/inditex_mvp_architecture)
 
 ## Built at
 
