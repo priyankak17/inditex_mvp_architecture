@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZARA AI STYLIST — MVP Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a08;
+    --surface: #111110;
+    --border: #2a2a26;
+    --accent: #c8f04a;
+    --accent2: #f0c84a;
+    --accent3: #f04a4a;
+    --text: #e8e8e0;
+    --muted: #666660;
+    --user: #4a9ff0;
+    --api: #c8f04a;
+    --ai: #b04af0;
+    --output: #f08c4a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 40px 32px 80px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 56px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .title-block h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 6vw, 72px);
+    letter-spacing: 0.04em;
+    line-height: 0.95;
+    color: var(--text);
+  }
+  .title-block h1 span { color: var(--accent); }
+  .title-block .sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .meta {
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #0a0a08;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Main arch grid */
+  .arch {
+    display: grid;
+    gap: 3px;
+  }
+
+  /* Row = horizontal swim lane */
+  .lane {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 3px;
+    min-height: 0;
+  }
+  .lane-label {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .lane-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 3px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    z-index: 2;
+  }
+  .card-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .card h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    line-height: 1;
+  }
+  .card p {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .card .tech {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .chip {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  .chip.highlight { border-color: var(--accent); color: var(--accent); }
+
+  /* Color variants */
+  .c-user .card-tag { color: var(--user); }
+  .c-user .card-tag::before { background: var(--user); }
+  .c-user:hover { border-color: var(--user); }
+
+  .c-ai .card-tag { color: var(--ai); }
+  .c-ai .card-tag::before { background: var(--ai); }
+  .c-ai:hover { border-color: var(--ai); }
+
+  .c-api .card-tag { color: var(--api); }
+  .c-api .card-tag::before { background: var(--api); }
+  .c-api:hover { border-color: var(--api); }
+
+  .c-output .card-tag { color: var(--output); }
+  .c-output .card-tag::before { background: var(--output); }
+  .c-output:hover { border-color: var(--output); }
+
+  /* Flow arrows between lanes */
+  .flow-connector {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    padding-left: 120px + 3px;
+    margin-left: 123px;
+    position: relative;
+  }
+  .flow-connector::before {
+    content: '';
+    position: absolute;
+    left: 123px;
+    width: 2px;
+    height: 28px;
+    background: linear-gradient(to bottom, var(--border), transparent);
+  }
+  .flow-connector .arrow-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding-left: 16px;
+  }
+  .flow-connector .arrow-label::before {
+    content: '↓ ';
+  }
+
+  /* Data flow section */
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 48px 0 16px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Milestone strip */
+  .milestones {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    margin-top: 3px;
+  }
+  .milestone {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 14px;
+  }
+  .ms-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    color: var(--border);
+    line-height: 1;
+  }
+  .ms-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 4px 0;
+  }
+  .ms-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* KPI strip */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 3px;
+    margin-top: 40px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+  }
+  .kpi-icon { font-size: 20px; margin-bottom: 6px; }
+  .kpi-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.4;
+  }
+
+  /* Footnote */
+  .footnote {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 700px) {
+    .lane { grid-template-columns: 60px 1fr; }
+    .milestones { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="title-block">
+    <div class="badge">MVP Architecture</div>
+    <h1>ZARA<br><span>AI STYLIST</span></h1>
+    <div class="sub">Conceptual System Architecture — High Level</div>
+  </div>
+  <div class="meta">
+    <div>Version 1.0</div>
+    <div>5 Milestones</div>
+    <div>End-to-End Flow</div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--user)"></div>User Layer</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ai)"></div>AI / Intelligence Layer</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--api)"></div>Data / API Layer</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--output)"></div>Output / Generation Layer</div>
+</div>
+
+<!-- ARCHITECTURE SWIM LANES -->
+<div class="arch">
+
+  <!-- LANE 1: USER LAYER -->
+  <div class="lane">
+    <div class="lane-label" style="border-color: var(--user); color: var(--user);">User Layer</div>
+    <div class="lane-content">
+      <div class="card c-user">
+        <div class="card-tag">Entry Point</div>
+        <h3>Onboarding</h3>
+        <p>User lands on platform, uploads a reference photo of themselves for virtual try-on calibration.</p>
+        <div class="tech">
+          <span class="chip">Photo Upload</span>
+          <span class="chip">Profile Store</span>
+        </div>
+      </div>
+      <div class="card c-user">
+        <div class="card-tag">Input</div>
+        <h3>Style Query</h3>
+        <p>User describes their need: occasion, dress code, color/fabric preferences, or a vibe in natural language.</p>
+        <div class="tech">
+          <span class="chip">Free-text</span>
+          <span class="chip">Guided Filters</span>
+        </div>
+      </div>
+      <div class="card c-user">
+        <div class="card-tag">Action</div>
+        <h3>Try-On Input</h3>
+        <p>Drag & drop product images onto the try-on canvas. Select items from the results grid.</p>
+        <div class="tech">
+          <span class="chip">Drag & Drop</span>
+          <span class="chip">Multi-select</span>
+        </div>
+      </div>
+      <div class="card c-user">
+        <div class="card-tag">Output</div>
+        <h3>Save & Revisit</h3>
+        <p>Bookmark outfits, re-visit before the event. Rate confidence 1–5. Share or purchase directly.</p>
+        <div class="tech">
+          <span class="chip">Saved Outfits</span>
+          <span class="chip">Confidence Score</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-connector"><span class="arrow-label">Query passed to intelligence layer</span></div>
+
+  <!-- LANE 2: AI LAYER -->
+  <div class="lane">
+    <div class="lane-label" style="border-color: var(--ai); color: var(--ai);">AI / Intelligence</div>
+    <div class="lane-content">
+      <div class="card c-ai">
+        <div class="card-tag">NLP</div>
+        <h3>Query Understanding</h3>
+        <p>Parses free-text input. Extracts intent signals: formality, color palette, body preference, occasion type.</p>
+        <div class="tech">
+          <span class="chip highlight">LLM</span>
+          <span class="chip">Entity Extraction</span>
+          <span class="chip">Embeddings</span>
+        </div>
+      </div>
+      <div class="card c-ai">
+        <div class="card-tag">Matching</div>
+        <h3>Semantic Search</h3>
+        <p>Maps query intent to Zara product catalogue using vector similarity. Ranks by relevance and style coherence.</p>
+        <div class="tech">
+          <span class="chip highlight">Vector DB</span>
+          <span class="chip">Re-ranking</span>
+        </div>
+      </div>
+      <div class="card c-ai">
+        <div class="card-tag">Curation</div>
+        <h3>Outfit Assembly</h3>
+        <p>Groups matched items into coherent outfits. Ensures visual harmony across top, bottom, and accessories.</p>
+        <div class="tech">
+          <span class="chip highlight">LLM</span>
+          <span class="chip">Style Rules</span>
+        </div>
+      </div>
+      <div class="card c-ai">
+        <div class="card-tag">Generation</div>
+        <h3>Virtual Try-On</h3>
+        <p>Composites user photo + selected garments using generative model. Outputs styled portrait + optional motion clip.</p>
+        <div class="tech">
+          <span class="chip highlight">Pixia / Diffusion</span>
+          <span class="chip">Image-to-Video</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-connector"><span class="arrow-label">Structured queries sent to data sources</span></div>
+
+  <!-- LANE 3: DATA / API LAYER -->
+  <div class="lane">
+    <div class="lane-label" style="border-color: var(--api); color: var(--api);">Data / API</div>
+    <div class="lane-content">
+      <div class="card c-api">
+        <div class="card-tag">Catalogue</div>
+        <h3>ITX-REST API</h3>
+        <p>Inditex/Zara's product API. Returns live inventory: SKU, price, sizes, product images, category taxonomy.</p>
+        <div class="tech">
+          <span class="chip highlight">REST API</span>
+          <span class="chip">Live Inventory</span>
+        </div>
+      </div>
+      <div class="card c-api">
+        <div class="card-tag">Indexing</div>
+        <h3>Product Vector Store</h3>
+        <p>Pre-embedded Zara catalogue. Enables fast semantic retrieval without hitting the API for every query.</p>
+        <div class="tech">
+          <span class="chip">Pinecone / pgvector</span>
+          <span class="chip">Batch Sync</span>
+        </div>
+      </div>
+      <div class="card c-api">
+        <div class="card-tag">Storage</div>
+        <h3>User Data Store</h3>
+        <p>Stores user photo, profile, saved outfits, confidence ratings, and event history. Enables revisit flows.</p>
+        <div class="tech">
+          <span class="chip">DB</span>
+          <span class="chip">Object Store</span>
+        </div>
+      </div>
+      <div class="card c-api">
+        <div class="card-tag">Images</div>
+        <h3>Product Image CDN</h3>
+        <p>High-res Pixia-linked product imagery served for the grid results page and as input to the try-on model.</p>
+        <div class="tech">
+          <span class="chip">CDN</span>
+          <span class="chip">Pixia Assets</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-connector"><span class="arrow-label">Results rendered to user</span></div>
+
+  <!-- LANE 4: OUTPUT LAYER -->
+  <div class="lane">
+    <div class="lane-label" style="border-color: var(--output); color: var(--output);">Output / UI</div>
+    <div class="lane-content">
+      <div class="card c-output">
+        <div class="card-tag">Results</div>
+        <h3>Product Grid</h3>
+        <p>Responsive grid of matched garments with Pixia images, price, and size. Filterable, sortable, saveable.</p>
+        <div class="tech">
+          <span class="chip">Grid UI</span>
+          <span class="chip">Filter Panel</span>
+        </div>
+      </div>
+      <div class="card c-output">
+        <div class="card-tag">Try-On</div>
+        <h3>Styled Portrait</h3>
+        <p>Generated image of the user wearing selected outfit. Displayed alongside product links for direct purchase.</p>
+        <div class="tech">
+          <span class="chip">Image Output</span>
+          <span class="chip">Purchase CTA</span>
+        </div>
+      </div>
+      <div class="card c-output">
+        <div class="card-tag">Motion</div>
+        <h3>Scene Clip</h3>
+        <p>3–5 sec video of user walking in outfit with indoor/outdoor lighting variation. Enhances confidence signal.</p>
+        <div class="tech">
+          <span class="chip highlight">Video Gen</span>
+          <span class="chip">Lighting FX</span>
+        </div>
+      </div>
+      <div class="card c-output">
+        <div class="card-tag">Loop</div>
+        <h3>Outfit Board</h3>
+        <p>Saved looks accessible before an event. Drives revisit frequency and repeat usage signals for success metrics.</p>
+        <div class="tech">
+          <span class="chip">Lookbook</span>
+          <span class="chip">Notifications</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MILESTONES -->
+<div class="section-title">Delivery Milestones</div>
+<div class="milestones">
+  <div class="milestone">
+    <div class="ms-num">01</div>
+    <div class="ms-title">Onboarding</div>
+    <div class="ms-desc">Photo upload flow working. User stored, ready for try-on.</div>
+  </div>
+  <div class="milestone">
+    <div class="ms-num">02</div>
+    <div class="ms-title">Search + API</div>
+    <div class="ms-desc">Query input connected to ITX-REST. Live product data returned.</div>
+  </div>
+  <div class="milestone">
+    <div class="ms-num">03</div>
+    <div class="ms-title">Grid Results</div>
+    <div class="ms-desc">Product grid with real data and Pixia images rendered.</div>
+  </div>
+  <div class="milestone">
+    <div class="ms-num">04</div>
+    <div class="ms-title">Virtual Try-On</div>
+    <div class="ms-desc">Drag & drop → Pixia-generated output image with user + outfit.</div>
+  </div>
+  <div class="milestone" style="border-color: var(--accent);">
+    <div class="ms-num" style="color: var(--accent);">05</div>
+    <div class="ms-title">Demo Ready</div>
+    <div class="ms-desc">Full E2E flow ready. Presentation at 4PM.</div>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="section-title">Success Metrics</div>
+<div class="kpis">
+  <div class="kpi"><div class="kpi-icon">🛍️</div><div class="kpi-label">Purchase<br>Conversion</div></div>
+  <div class="kpi"><div class="kpi-icon">📈</div><div class="kpi-label">Platform<br>Traffic</div></div>
+  <div class="kpi"><div class="kpi-icon">⏱️</div><div class="kpi-label">Try-On<br>Time Spent</div></div>
+  <div class="kpi"><div class="kpi-icon">🔖</div><div class="kpi-label">Saved Outfits<br>/ User</div></div>
+  <div class="kpi"><div class="kpi-icon">🔁</div><div class="kpi-label">Revisit<br>Frequency</div></div>
+  <div class="kpi"><div class="kpi-icon">⭐</div><div class="kpi-label">Confidence<br>Rating 1–5</div></div>
+  <div class="kpi"><div class="kpi-icon">📅</div><div class="kpi-label">Repeat Event<br>Usage</div></div>
+</div>
+
+<!-- FOOTNOTE -->
+<div class="footnote">
+  <span>ZARA AI STYLIST — MVP ARCHITECTURE v1.0</span>
+  <span>Powered by: ITX-REST API · Pixia · LLM · Generative Try-On</span>
+  <span>5 Milestones → End-to-End Demo</span>
+</div>
+
+</body>
+</html>
